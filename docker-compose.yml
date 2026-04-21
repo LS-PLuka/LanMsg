@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: lanmsg-postgres
+    environment:
+      POSTGRES_DB: lanmsgdb
+      POSTGRES_USER: lanmsg
+      POSTGRES_PASSWORD: lanmsg123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lanmsg-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lanmsg -d lanmsgdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./api
+    container_name: lanmsg-backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - lanmsg-net
+
+  frontend:
+    image: nginx:alpine
+    container_name: lanmsg-frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - lanmsg-net
+
+volumes:
+  postgres_data:
+
+networks:
+  lanmsg-net:
+    driver: bridge
